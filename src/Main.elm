@@ -6,7 +6,7 @@ import Html.Attributes exposing (checked, class, name, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
 import Svg exposing (Svg, circle, rect, svg, text)
-import Svg.Attributes exposing (cx, cy, height, r, viewBox, width, x, y)
+import Svg.Attributes exposing (cx, cy, fill, height, r, stroke, strokeWidth, viewBox, width, x, y)
 
 
 type alias Position =
@@ -25,6 +25,8 @@ type alias Model =
     , width : Int
     , height : Int
     , strokeWidth : Int
+    , strokeColor : String
+    , fillColor : String
     , dragStart : Position
     , tool : Tool
     }
@@ -37,6 +39,8 @@ type Msg
     | ZoomIn
     | ZoomOut
     | StrokeWidth String
+    | StrokeColor String
+    | FillColor String
     | SetTool Tool
 
 
@@ -50,8 +54,8 @@ bottomRight a b =
     { x = max a.x b.x, y = max a.y b.y }
 
 
-scaledRect : Position -> Position -> Int -> Svg Msg
-scaledRect start end scale =
+scaledRect : Position -> Position -> Model -> Svg Msg
+scaledRect start end model =
     let
         tl =
             topLeft start end
@@ -60,10 +64,24 @@ scaledRect start end scale =
             bottomRight start end
     in
     rect
-        [ x (String.fromInt (tl.x // scale))
-        , y (String.fromInt (tl.y // scale))
-        , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat scale))
-        , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat scale))
+        [ x (String.fromInt (tl.x // model.scale))
+        , y (String.fromInt (tl.y // model.scale))
+        , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat model.scale))
+        , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat model.scale))
+        , stroke model.strokeColor
+        , fill model.fillColor
+        , strokeWidth (String.fromInt model.strokeWidth)
+        ]
+        []
+
+
+scaledCircle : Int -> Int -> Model -> Svg Msg
+scaledCircle x y model =
+    circle
+        [ cx (String.fromInt (x // model.scale))
+        , cy (String.fromInt (y // model.scale))
+        , r (String.fromInt model.strokeWidth)
+        , fill model.strokeColor -- this is intentional, circle is acting as a brush
         ]
         []
 
@@ -73,13 +91,7 @@ brushStart model pos =
     { model
         | dragStart = pos
         , preview =
-            [ circle
-                [ cx (String.fromInt (pos.x // model.scale))
-                , cy (String.fromInt (pos.y // model.scale))
-                , r (String.fromInt model.strokeWidth)
-                ]
-                []
-            ]
+            [ scaledCircle pos.x pos.y model ]
     }
 
 
@@ -92,13 +104,7 @@ brushContinue model pos =
         _ ->
             { model
                 | preview =
-                    [ circle
-                        [ cx (String.fromInt (pos.x // model.scale))
-                        , cy (String.fromInt (pos.y // model.scale))
-                        , r (String.fromInt model.strokeWidth)
-                        ]
-                        []
-                    ]
+                    [ scaledCircle pos.x pos.y model ]
             }
 
 
@@ -107,13 +113,7 @@ brushEnd model pos =
     { model
         | shapes =
             List.append model.shapes
-                [ circle
-                    [ cx (String.fromInt (pos.x // model.scale))
-                    , cy (String.fromInt (pos.y // model.scale))
-                    , r (String.fromInt model.strokeWidth)
-                    ]
-                    []
-                ]
+                [ scaledCircle pos.x pos.y model ]
         , preview = []
     }
 
@@ -123,7 +123,7 @@ squareStart model pos =
     { model
         | dragStart = pos
         , preview =
-            [ scaledRect pos pos model.scale ]
+            [ scaledRect pos pos model ]
     }
 
 
@@ -136,7 +136,7 @@ squareContinue model pos =
         _ ->
             { model
                 | preview =
-                    [ scaledRect model.dragStart pos model.scale ]
+                    [ scaledRect model.dragStart pos model ]
             }
 
 
@@ -145,7 +145,7 @@ squareEnd model pos =
     { model
         | shapes =
             List.append model.shapes
-                [ scaledRect model.dragStart pos model.scale ]
+                [ scaledRect model.dragStart pos model ]
         , preview = []
     }
 
@@ -195,6 +195,8 @@ init =
     , width = 800
     , height = 600
     , strokeWidth = 5
+    , strokeColor = "#000000"
+    , fillColor = "#ffffff"
     , dragStart = { x = 0, y = 0 }
     , tool = Brush
     }
@@ -218,15 +220,25 @@ update msg model =
         ZoomOut ->
             { model | scale = max (model.scale // 2) 1 }
 
-        StrokeWidth strokeWidth ->
+        StrokeWidth width ->
             { model
                 | strokeWidth =
-                    case String.toInt strokeWidth of
+                    case String.toInt width of
                         Just i ->
                             i
 
                         Nothing ->
                             0
+            }
+
+        StrokeColor color ->
+            { model
+                | strokeColor = color
+            }
+
+        FillColor color ->
+            { model
+                | fillColor = color
             }
 
         SetTool tool ->
@@ -244,6 +256,8 @@ view model =
         [ div [ class "toolbar" ]
             [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
             , button [ onClick ZoomIn ] [ text "Zoom In" ]
+            , label [] [ input [ type_ "Color", value model.strokeColor, onInput StrokeColor ] [], text "Stroke" ]
+            , label [] [ input [ type_ "Color", value model.fillColor, onInput FillColor ] [], text "Fill" ]
             , fieldset []
                 [ label []
                     [ input
