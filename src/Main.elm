@@ -40,13 +40,30 @@ type Msg
     | SetTool Tool
 
 
+topLeft : Position -> Position -> Position
+topLeft a b =
+    { x = min a.x b.x, y = min a.y b.y }
+
+
+bottomRight : Position -> Position -> Position
+bottomRight a b =
+    { x = max a.x b.x, y = max a.y b.y }
+
+
 scaledRect : Position -> Position -> Int -> Svg Msg
 scaledRect start end scale =
+    let
+        tl =
+            topLeft start end
+
+        br =
+            bottomRight start end
+    in
     rect
-        [ x (String.fromInt (start.x // scale))
-        , y (String.fromInt (start.y // scale))
-        , width (String.fromFloat (toFloat (end.x - start.x) / toFloat scale))
-        , height (String.fromFloat (toFloat (end.y - start.y) / toFloat scale))
+        [ x (String.fromInt (tl.x // scale))
+        , y (String.fromInt (tl.y // scale))
+        , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat scale))
+        , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat scale))
         ]
         []
 
