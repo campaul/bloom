@@ -1,32 +1,166 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, input, span)
-import Html.Attributes exposing (class, type_, value)
+import Html exposing (Html, button, div, fieldset, input, label, span)
+import Html.Attributes exposing (checked, class, name, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
-import Svg exposing (Svg, circle, svg, text)
-import Svg.Attributes exposing (cx, cy, height, r, viewBox, width)
+import Svg exposing (Svg, circle, rect, svg, text)
+import Svg.Attributes exposing (cx, cy, height, r, viewBox, width, x, y)
 
 
 type alias Position =
     { x : Int, y : Int }
 
 
+type Tool
+    = Brush
+    | Square
+
+
 type alias Model =
     { shapes : List (Svg Msg)
+    , preview : List (Svg Msg)
     , scale : Int
     , width : Int
     , height : Int
-    , brushSize : Int
+    , strokeWidth : Int
+    , dragStart : Position
+    , tool : Tool
     }
 
 
 type Msg
-    = Append Position
+    = EndShape Position
+    | StartShape Position
+    | ContinueShape Position
     | ZoomIn
     | ZoomOut
-    | BrushSize String
+    | StrokeWidth String
+    | SetTool Tool
+
+
+scaledRect : Position -> Position -> Int -> Svg Msg
+scaledRect start end scale =
+    rect
+        [ x (String.fromInt (start.x // scale))
+        , y (String.fromInt (start.y // scale))
+        , width (String.fromFloat (toFloat (end.x - start.x) / toFloat scale))
+        , height (String.fromFloat (toFloat (end.y - start.y) / toFloat scale))
+        ]
+        []
+
+
+brushStart : Model -> Position -> Model
+brushStart model pos =
+    { model
+        | dragStart = pos
+        , preview =
+            [ circle
+                [ cx (String.fromInt (pos.x // model.scale))
+                , cy (String.fromInt (pos.y // model.scale))
+                , r (String.fromInt model.strokeWidth)
+                ]
+                []
+            ]
+    }
+
+
+brushContinue : Model -> Position -> Model
+brushContinue model pos =
+    case model.preview of
+        [] ->
+            model
+
+        _ ->
+            { model
+                | preview =
+                    [ circle
+                        [ cx (String.fromInt (pos.x // model.scale))
+                        , cy (String.fromInt (pos.y // model.scale))
+                        , r (String.fromInt model.strokeWidth)
+                        ]
+                        []
+                    ]
+            }
+
+
+brushEnd : Model -> Position -> Model
+brushEnd model pos =
+    { model
+        | shapes =
+            List.append model.shapes
+                [ circle
+                    [ cx (String.fromInt (pos.x // model.scale))
+                    , cy (String.fromInt (pos.y // model.scale))
+                    , r (String.fromInt model.strokeWidth)
+                    ]
+                    []
+                ]
+        , preview = []
+    }
+
+
+squareStart : Model -> Position -> Model
+squareStart model pos =
+    { model
+        | dragStart = pos
+        , preview =
+            [ scaledRect pos pos model.scale ]
+    }
+
+
+squareContinue : Model -> Position -> Model
+squareContinue model pos =
+    case model.preview of
+        [] ->
+            model
+
+        _ ->
+            { model
+                | preview =
+                    [ scaledRect model.dragStart pos model.scale ]
+            }
+
+
+squareEnd : Model -> Position -> Model
+squareEnd model pos =
+    { model
+        | shapes =
+            List.append model.shapes
+                [ scaledRect model.dragStart pos model.scale ]
+        , preview = []
+    }
+
+
+toolStart : Model -> Position -> Model
+toolStart model =
+    case model.tool of
+        Brush ->
+            brushStart model
+
+        Square ->
+            squareStart model
+
+
+toolContinue : Model -> Position -> Model
+toolContinue model =
+    case model.tool of
+        Brush ->
+            brushContinue model
+
+        Square ->
+            squareContinue model
+
+
+toolEnd : Model -> Position -> Model
+toolEnd model =
+    case model.tool of
+        Brush ->
+            brushEnd model
+
+        Square ->
+            squareEnd model
 
 
 decodePosition : Decode.Decoder Position
@@ -39,28 +173,27 @@ decodePosition =
 init : Model
 init =
     { shapes = []
+    , preview = []
     , scale = 1
     , width = 800
     , height = 600
-    , brushSize = 5
+    , strokeWidth = 5
+    , dragStart = { x = 0, y = 0 }
+    , tool = Brush
     }
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Append pos ->
-            { model
-                | shapes =
-                    List.append model.shapes
-                        [ circle
-                            [ cx (String.fromInt (pos.x // model.scale))
-                            , cy (String.fromInt (pos.y // model.scale))
-                            , r (String.fromInt model.brushSize)
-                            ]
-                            []
-                        ]
-            }
+        StartShape pos ->
+            toolStart model pos
+
+        ContinueShape pos ->
+            toolContinue model pos
+
+        EndShape pos ->
+            toolEnd model pos
 
         ZoomIn ->
             { model | scale = min (model.scale * 2) 16 }
@@ -68,16 +201,24 @@ update msg model =
         ZoomOut ->
             { model | scale = max (model.scale // 2) 1 }
 
-        BrushSize brushSize ->
+        StrokeWidth strokeWidth ->
             { model
-                | brushSize =
-                    case String.toInt brushSize of
+                | strokeWidth =
+                    case String.toInt strokeWidth of
                         Just i ->
                             i
 
                         Nothing ->
                             0
             }
+
+        SetTool tool ->
+            case tool of
+                Brush ->
+                    { model | tool = Brush }
+
+                Square ->
+                    { model | tool = Square }
 
 
 view : Model -> Html Msg
@@ -86,15 +227,37 @@ view model =
         [ div [ class "toolbar" ]
             [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
             , button [ onClick ZoomIn ] [ text "Zoom In" ]
+            , fieldset []
+                [ label []
+                    [ input
+                        [ type_ "radio"
+                        , name "tool"
+                        , checked (model.tool == Brush)
+                        , onClick (SetTool Brush)
+                        ]
+                        []
+                    , text "Brush"
+                    ]
+                , label []
+                    [ input
+                        [ type_ "radio"
+                        , name "tool"
+                        , checked (model.tool == Square)
+                        , onClick (SetTool Square)
+                        ]
+                        []
+                    , text "Square"
+                    ]
+                ]
             , input
                 [ type_ "range"
                 , Html.Attributes.min "1"
                 , Html.Attributes.max "100"
-                , value (String.fromInt model.brushSize)
-                , onInput BrushSize
+                , value (String.fromInt model.strokeWidth)
+                , onInput StrokeWidth
                 ]
                 []
-            , span [] [ text (String.fromInt model.brushSize) ]
+            , span [] [ text (String.fromInt model.strokeWidth) ]
             ]
         , div [ class "viewport" ]
             [ svg
@@ -106,9 +269,11 @@ view model =
                         ++ " "
                         ++ String.fromInt model.height
                     )
-                , on "click" (Decode.map Append decodePosition)
+                , on "mousedown" (Decode.map StartShape decodePosition)
+                , on "mousemove" (Decode.map ContinueShape decodePosition)
+                , on "mouseup" (Decode.map EndShape decodePosition)
                 ]
-                model.shapes
+                (List.append model.shapes model.preview)
             ]
         ]
 
