@@ -1,6 +1,17 @@
 {
   "devDependencies": {
     "elm": "^0.19.1-6",
-    "elm-format": "^0.8.8"
+    "elm-format": "^0.8.8",
+    "esbuild": "^0.27.2"
+  },
+  "scripts": {
+    "build-elm": "elm make elm/src/Main.elm --optimize --output=dist/bloom.js",
+    "build-css": "esbuild --bundle css/bloom.css --outfile=dist/bloom.css",
+    "build-html": "cp html/index.html dist/",
+    "minify-js": "esbuild dist/bloom.js --minify --outfile=dist/bloom.min.js",
+    "minify-css": "esbuild dist/bloom.css --minify --outfile=dist/bloom.min.css",
+    "build": "npm run build-elm && npm run build-css && npm run build-html && npm run minify-js && npm run minify-css",
+    "format": "elm-format elm/src/ --yes",
+    "reactor": "elm reactor"
   }
 }
