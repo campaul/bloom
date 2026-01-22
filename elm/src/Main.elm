@@ -1,3 +1,10 @@
+-- TODO: pencil doesn't handle click without drag
+-- TODO: move scaling out of styledRect
+-- TODO: ignore right clicks
+-- TODO: handle going off canvas
+-- TODO: scale rounding errors
+
+
 module Main exposing (..)
 
 import Bitwise exposing (and, shiftRightBy)
@@ -6,8 +13,8 @@ import Html exposing (Html, button, div, fieldset, input, label, span)
 import Html.Attributes exposing (checked, class, name, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
-import Svg exposing (Svg, circle, rect, svg, text)
-import Svg.Attributes exposing (cx, cy, fill, height, r, stroke, strokeWidth, viewBox, width, x, y)
+import Svg exposing (Svg, circle, path, rect, svg, text)
+import Svg.Attributes exposing (cx, cy, d, fill, height, r, stroke, strokeLinecap, strokeLinejoin, strokeWidth, viewBox, width, x, y)
 
 
 type alias Position =
@@ -15,7 +22,7 @@ type alias Position =
 
 
 type Tool
-    = Brush
+    = Pencil
     | Square
 
 
@@ -31,6 +38,7 @@ type alias Model =
     , fillColor : String
     , fillAlpha : Int
     , dragStart : Position
+    , dragContinue : List Position
     , tool : Tool
     }
 
@@ -93,8 +101,8 @@ bottomRight a b =
     { x = max a.x b.x, y = max a.y b.y }
 
 
-scaledRect : Position -> Position -> Model -> Svg Msg
-scaledRect start end model =
+styledRect : Position -> Position -> Model -> Svg Msg
+styledRect start end model =
     let
         tl =
             topLeft start end
@@ -114,46 +122,62 @@ scaledRect start end model =
         []
 
 
-scaledCircle : Int -> Int -> Model -> Svg Msg
-scaledCircle x y model =
-    circle
-        [ cx (String.fromInt (x // model.scale))
-        , cy (String.fromInt (y // model.scale))
-        , r (String.fromInt model.strokeWidth)
-        , fill (model.strokeColor ++ toHex model.strokeAlpha) -- this is intentional, circle is acting as a brush
+pathPosition : String -> Position -> String
+pathPosition prefix pos =
+    prefix ++ String.fromInt pos.x ++ " " ++ String.fromInt pos.y
+
+
+scaledPosition : Position -> Model -> Position
+scaledPosition pos model =
+    { x = pos.x // model.scale, y = pos.y // model.scale }
+
+
+styledPath : Model -> List Position -> Svg Msg
+styledPath model next =
+    path
+        [ d (String.join " " (List.append [ pathPosition "M" model.dragStart ] (List.map (pathPosition "L") (List.append model.dragContinue next))))
+        , stroke (model.strokeColor ++ toHex model.strokeAlpha)
+        , strokeWidth (String.fromInt model.strokeWidth)
+        , strokeLinecap "round"
+        , strokeLinejoin "round"
+        , fill "#00000000"
         ]
         []
 
 
-brushStart : Model -> Position -> Model
-brushStart model pos =
+pencilStart : Model -> Position -> Model
+pencilStart model pos =
     { model
-        | dragStart = pos
-        , preview =
-            [ scaledCircle pos.x pos.y model ]
+        | dragStart = scaledPosition pos model
+        , preview = [ styledPath model [] ]
     }
 
 
-brushContinue : Model -> Position -> Model
-brushContinue model pos =
+pencilContinue : Model -> Position -> Model
+pencilContinue model pos =
     case model.preview of
         [] ->
             model
 
         _ ->
+            let
+                next =
+                    [ scaledPosition pos model ]
+            in
             { model
-                | preview =
-                    [ scaledCircle pos.x pos.y model ]
+                | dragContinue = List.append model.dragContinue next
+                , preview = [ styledPath model next ]
             }
 
 
-brushEnd : Model -> Position -> Model
-brushEnd model pos =
+pencilEnd : Model -> Position -> Model
+pencilEnd model pos =
     { model
         | shapes =
             List.append model.shapes
-                [ scaledCircle pos.x pos.y model ]
+                [ styledPath model [] ]
         , preview = []
+        , dragContinue = []
     }
 
 
@@ -162,7 +186,7 @@ squareStart model pos =
     { model
         | dragStart = pos
         , preview =
-            [ scaledRect pos pos model ]
+            [ styledRect pos pos model ]
     }
 
 
@@ -175,7 +199,7 @@ squareContinue model pos =
         _ ->
             { model
                 | preview =
-                    [ scaledRect model.dragStart pos model ]
+                    [ styledRect model.dragStart pos model ]
             }
 
 
@@ -184,7 +208,7 @@ squareEnd model pos =
     { model
         | shapes =
             List.append model.shapes
-                [ scaledRect model.dragStart pos model ]
+                [ styledRect model.dragStart pos model ]
         , preview = []
     }
 
@@ -192,8 +216,8 @@ squareEnd model pos =
 toolStart : Model -> Position -> Model
 toolStart model =
     case model.tool of
-        Brush ->
-            brushStart model
+        Pencil ->
+            pencilStart model
 
         Square ->
             squareStart model
@@ -202,8 +226,8 @@ toolStart model =
 toolContinue : Model -> Position -> Model
 toolContinue model =
     case model.tool of
-        Brush ->
-            brushContinue model
+        Pencil ->
+            pencilContinue model
 
         Square ->
             squareContinue model
@@ -212,8 +236,8 @@ toolContinue model =
 toolEnd : Model -> Position -> Model
 toolEnd model =
     case model.tool of
-        Brush ->
-            brushEnd model
+        Pencil ->
+            pencilEnd model
 
         Square ->
             squareEnd model
@@ -239,7 +263,8 @@ init =
     , fillColor = "#ffffff"
     , fillAlpha = 255
     , dragStart = { x = 0, y = 0 }
-    , tool = Brush
+    , dragContinue = []
+    , tool = Pencil
     }
 
 
@@ -306,8 +331,8 @@ update msg model =
 
         SetTool tool ->
             case tool of
-                Brush ->
-                    { model | tool = Brush }
+                Pencil ->
+                    { model | tool = Pencil }
 
                 Square ->
                     { model | tool = Square }
@@ -348,11 +373,11 @@ view model =
                     [ input
                         [ type_ "radio"
                         , name "tool"
-                        , checked (model.tool == Brush)
-                        , onClick (SetTool Brush)
+                        , checked (model.tool == Pencil)
+                        , onClick (SetTool Pencil)
                         ]
                         []
-                    , text "Brush"
+                    , text "Pencil"
                     ]
                 , label []
                     [ input
