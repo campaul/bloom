@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Bitwise exposing (and, shiftRightBy)
 import Browser
 import Html exposing (Html, button, div, fieldset, input, label, span)
 import Html.Attributes exposing (checked, class, name, type_, value)
@@ -26,7 +27,9 @@ type alias Model =
     , height : Int
     , strokeWidth : Int
     , strokeColor : String
+    , strokeAlpha : Int
     , fillColor : String
+    , fillAlpha : Int
     , dragStart : Position
     , tool : Tool
     }
@@ -40,8 +43,44 @@ type Msg
     | ZoomOut
     | StrokeWidth String
     | StrokeColor String
+    | StrokeAlpha String
     | FillColor String
+    | FillAlpha String
     | SetTool Tool
+
+
+toHexDigit : Int -> String
+toHexDigit v =
+    if v < 10 then
+        String.fromInt v
+
+    else
+        case v of
+            10 ->
+                "a"
+
+            11 ->
+                "b"
+
+            12 ->
+                "c"
+
+            13 ->
+                "d"
+
+            14 ->
+                "e"
+
+            15 ->
+                "f"
+
+            _ ->
+                "0"
+
+
+toHex : Int -> String
+toHex v =
+    toHexDigit (and 15 (shiftRightBy 4 v)) ++ toHexDigit (and 15 v)
 
 
 topLeft : Position -> Position -> Position
@@ -68,8 +107,8 @@ scaledRect start end model =
         , y (String.fromInt (tl.y // model.scale))
         , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat model.scale))
         , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat model.scale))
-        , stroke model.strokeColor
-        , fill model.fillColor
+        , stroke (model.strokeColor ++ toHex model.strokeAlpha)
+        , fill (model.fillColor ++ toHex model.fillAlpha)
         , strokeWidth (String.fromInt model.strokeWidth)
         ]
         []
@@ -81,7 +120,7 @@ scaledCircle x y model =
         [ cx (String.fromInt (x // model.scale))
         , cy (String.fromInt (y // model.scale))
         , r (String.fromInt model.strokeWidth)
-        , fill model.strokeColor -- this is intentional, circle is acting as a brush
+        , fill (model.strokeColor ++ toHex model.strokeAlpha) -- this is intentional, circle is acting as a brush
         ]
         []
 
@@ -196,7 +235,9 @@ init =
     , height = 600
     , strokeWidth = 5
     , strokeColor = "#000000"
+    , strokeAlpha = 255
     , fillColor = "#ffffff"
+    , fillAlpha = 255
     , dragStart = { x = 0, y = 0 }
     , tool = Brush
     }
@@ -236,9 +277,31 @@ update msg model =
                 | strokeColor = color
             }
 
+        StrokeAlpha alpha ->
+            { model
+                | strokeAlpha =
+                    case String.toInt alpha of
+                        Just i ->
+                            i
+
+                        Nothing ->
+                            0
+            }
+
         FillColor color ->
             { model
                 | fillColor = color
+            }
+
+        FillAlpha alpha ->
+            { model
+                | fillAlpha =
+                    case String.toInt alpha of
+                        Just i ->
+                            i
+
+                        Nothing ->
+                            0
             }
 
         SetTool tool ->
@@ -257,7 +320,29 @@ view model =
             [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
             , button [ onClick ZoomIn ] [ text "Zoom In" ]
             , label [] [ input [ type_ "Color", value model.strokeColor, onInput StrokeColor ] [], text "Stroke" ]
+            , label []
+                [ input
+                    [ type_ "range"
+                    , Html.Attributes.min "0"
+                    , Html.Attributes.max "255"
+                    , value (String.fromInt model.strokeAlpha)
+                    , onInput StrokeAlpha
+                    ]
+                    []
+                , text ("Opacity" ++ String.fromInt (model.strokeAlpha * 100 // 255))
+                ]
             , label [] [ input [ type_ "Color", value model.fillColor, onInput FillColor ] [], text "Fill" ]
+            , label []
+                [ input
+                    [ type_ "range"
+                    , Html.Attributes.min "0"
+                    , Html.Attributes.max "255"
+                    , value (String.fromInt model.fillAlpha)
+                    , onInput FillAlpha
+                    ]
+                    []
+                , text ("Opacity " ++ String.fromInt (model.fillAlpha * 100 // 255))
+                ]
             , fieldset []
                 [ label []
                     [ input
@@ -280,15 +365,17 @@ view model =
                     , text "Square"
                     ]
                 ]
-            , input
-                [ type_ "range"
-                , Html.Attributes.min "1"
-                , Html.Attributes.max "100"
-                , value (String.fromInt model.strokeWidth)
-                , onInput StrokeWidth
+            , label []
+                [ input
+                    [ type_ "range"
+                    , Html.Attributes.min "1"
+                    , Html.Attributes.max "100"
+                    , value (String.fromInt model.strokeWidth)
+                    , onInput StrokeWidth
+                    ]
+                    []
+                , text (String.fromInt model.strokeWidth)
                 ]
-                []
-            , span [] [ text (String.fromInt model.strokeWidth) ]
             ]
         , div [ class "viewport" ]
             [ svg
