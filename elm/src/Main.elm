@@ -342,33 +342,57 @@ view : Model -> Html Msg
 view model =
     div [ class "application" ]
         [ div [ class "toolbar" ]
-            [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
-            , button [ onClick ZoomIn ] [ text "Zoom In" ]
-            , label [] [ input [ type_ "Color", value model.strokeColor, onInput StrokeColor ] [], text "Stroke" ]
-            , label []
-                [ input
-                    [ type_ "range"
-                    , Html.Attributes.min "0"
-                    , Html.Attributes.max "255"
-                    , value (String.fromInt model.strokeAlpha)
-                    , onInput StrokeAlpha
-                    ]
-                    []
-                , text ("Opacity" ++ String.fromInt (model.strokeAlpha * 100 // 255))
+            [ div [ class "tool-group" ]
+                [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
+                , button [ onClick ZoomIn ] [ text "Zoom In" ]
                 ]
-            , label [] [ input [ type_ "Color", value model.fillColor, onInput FillColor ] [], text "Fill" ]
-            , label []
-                [ input
-                    [ type_ "range"
-                    , Html.Attributes.min "0"
-                    , Html.Attributes.max "255"
-                    , value (String.fromInt model.fillAlpha)
-                    , onInput FillAlpha
+            , div [ class "tool-group" ]
+                [ label []
+                    [ text "Width:"
+                    , input
+                        [ type_ "range"
+                        , Html.Attributes.min "1"
+                        , Html.Attributes.max "100"
+                        , value (String.fromInt model.strokeWidth)
+                        , onInput StrokeWidth
+                        ]
+                        []
+                    , text (String.fromInt model.strokeWidth)
                     ]
-                    []
-                , text ("Opacity " ++ String.fromInt (model.fillAlpha * 100 // 255))
                 ]
-            , fieldset []
+            , div [ class "tool-group" ]
+                [ label [] [ text "Stroke:", input [ type_ "Color", value model.strokeColor, onInput StrokeColor ] [] ]
+                , label []
+                    [ text "Opacity:"
+                    , input
+                        [ type_ "range"
+                        , Html.Attributes.min "0"
+                        , Html.Attributes.max "255"
+                        , value (String.fromInt model.strokeAlpha)
+                        , onInput StrokeAlpha
+                        ]
+                        []
+                    , text (String.fromInt (model.strokeAlpha * 100 // 255))
+                    ]
+                ]
+            , div [ class "tool-group" ]
+                [ label [] [ text "Fill:", input [ type_ "Color", value model.fillColor, onInput FillColor ] [] ]
+                , label []
+                    [ text "Opacity:"
+                    , input
+                        [ type_ "range"
+                        , Html.Attributes.min "0"
+                        , Html.Attributes.max "255"
+                        , value (String.fromInt model.fillAlpha)
+                        , onInput FillAlpha
+                        ]
+                        []
+                    , text (String.fromInt (model.fillAlpha * 100 // 255))
+                    ]
+                ]
+            ]
+        , div [ class "toolbar" ]
+            [ div [ class "tool-group" ]
                 [ label []
                     [ input
                         [ type_ "radio"
@@ -389,17 +413,6 @@ view model =
                         []
                     , text "Square"
                     ]
-                ]
-            , label []
-                [ input
-                    [ type_ "range"
-                    , Html.Attributes.min "1"
-                    , Html.Attributes.max "100"
-                    , value (String.fromInt model.strokeWidth)
-                    , onInput StrokeWidth
-                    ]
-                    []
-                , text (String.fromInt model.strokeWidth)
                 ]
             ]
         , div [ class "viewport" ]
