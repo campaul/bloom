@@ -11,7 +11,7 @@
     "minify-js": "esbuild dist/bloom.js --minify --outfile=dist/bloom.min.js",
     "minify-css": "esbuild dist/bloom.css --minify --outfile=dist/bloom.min.css",
     "build": "npm run build-elm && npm run build-css && npm run build-html && npm run minify-js && npm run minify-css",
-    "format": "elm-format elm/src/ --yes",
+    "format": "elm-format elm/ --yes",
     "reactor": "elm reactor"
   }
 }

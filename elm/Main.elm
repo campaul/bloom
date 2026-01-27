@@ -9,12 +9,12 @@ module Main exposing (..)
 
 import Bitwise exposing (and, shiftRightBy)
 import Browser
-import Html exposing (Html, button, div, fieldset, input, label, span)
+import Html exposing (Html, button, div, input, label)
 import Html.Attributes exposing (checked, class, name, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
-import Svg exposing (Svg, circle, path, rect, svg, text)
-import Svg.Attributes exposing (cx, cy, d, fill, height, r, stroke, strokeLinecap, strokeLinejoin, strokeWidth, viewBox, width, x, y)
+import Svg exposing (Svg, path, rect, svg, text)
+import Svg.Attributes exposing (d, fill, height, stroke, strokeLinecap, strokeLinejoin, strokeWidth, viewBox, width, x, y)
 
 
 type alias Position =
