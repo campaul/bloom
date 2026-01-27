@@ -5,7 +5,7 @@
     "esbuild": "^0.27.2"
   },
   "scripts": {
-    "build-elm": "elm make elm/src/Main.elm --optimize --output=dist/bloom.js",
+    "build-elm": "elm make elm/Main.elm --optimize --output=dist/bloom.js",
     "build-css": "esbuild --bundle css/bloom.css --outfile=dist/bloom.css",
     "build-html": "cp html/index.html dist/",
     "minify-js": "esbuild dist/bloom.js --minify --outfile=dist/bloom.min.js",
