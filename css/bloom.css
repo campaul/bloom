@@ -3,6 +3,7 @@ html {
     font-family: sans-serif;
     font-weight: 400;
     font-size: 16px;
+    color: white;
 }
 
 body {
@@ -23,6 +24,11 @@ input {
     margin: 0 8px;
 }
 
+p {
+    margin: 10px 0 0 0;
+    padding: 0 10px;
+}
+
 .application {
     height: 100vh;
     display: flex;
@@ -31,7 +37,7 @@ input {
 
 .toolbar {
     border-bottom: 1px solid black;
-    background-color: #ccc;
+    background-color: #222;
 }
 
 .toolbar, .tool-group {
@@ -59,4 +65,68 @@ input {
     overflow: scroll;
     overscroll-behavior: none;
     flex: 1;
+}
+
+.sidebar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    background-color: #222;
+    display: flex;
+    flex-direction: column;
+}
+
+.color-picker {
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    padding: 10px;
+
+    background-color: #222;
+
+    --selected-color: #f00;
+    --selected-hue: #f00;
+}
+
+.color-picker svg {
+    overflow: visible;
+    background-color: rgba(0,0,0,0);
+}
+
+.color-picker input {
+    border-radius: 8px;
+    margin: 16px 0 0 0;
+    appearance: none;
+    height: 8px;
+    padding: 0 -4px;
+    background-color: #333;
+}
+
+.hue-picker {
+    background: linear-gradient(to left, red, magenta, blue, cyan, lime, yellow, red);
+}
+
+.opacity-picker {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0), var(--selected-hue)),
+        repeating-conic-gradient(#fff 0% 25%, #ccc 25% 50%) repeat 8px / 8px;
+}
+
+.color-picker input::-moz-range-thumb {
+  background: linear-gradient(to right, var(--selected-color), var(--selected-color)),
+        repeating-conic-gradient(#fff 0% 25%, #ccc 25% 50%) repeat 14px / 14px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 5px #333;
+}
+
+.swatch {
+    margin: 16px 0 0 0;
+    height: 32px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--selected-color), var(--selected-color)),
+        repeating-conic-gradient(#fff 0% 25%, #ccc 25% 50%) repeat 32px / 32px;
+}
+
+.noscroll .viewport {
+    overflow: hidden;
 }

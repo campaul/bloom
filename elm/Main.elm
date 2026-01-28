@@ -2,6 +2,7 @@
 -- TODO: move scaling out of styledRect
 -- TODO: ignore right clicks
 -- TODO: handle going off canvas
+-- This should be handled by processing all mousemove/mouseup events on the window
 -- TODO: scale rounding errors
 
 
@@ -9,21 +10,119 @@ module Main exposing (..)
 
 import Bitwise exposing (and, shiftRightBy)
 import Browser
-import Html exposing (Html, button, div, input, label)
-import Html.Attributes exposing (checked, class, name, type_, value)
+import Html exposing (Html, button, div, input, label, p)
+import Html.Attributes exposing (checked, class, name, step, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
-import Svg exposing (Svg, path, rect, svg, text)
-import Svg.Attributes exposing (d, fill, height, stroke, strokeLinecap, strokeLinejoin, strokeWidth, viewBox, width, x, y)
+import Svg
+    exposing
+        ( Svg
+        , circle
+        , defs
+        , linearGradient
+        , path
+        , rect
+        , stop
+        , svg
+        , text
+        )
+import Svg.Attributes
+    exposing
+        ( cx
+        , cy
+        , d
+        , fill
+        , gradientTransform
+        , height
+        , id
+        , offset
+        , r
+        , rx
+        , ry
+        , stopColor
+        , stroke
+        , strokeLinecap
+        , strokeLinejoin
+        , strokeWidth
+        , style
+        , viewBox
+        , width
+        , x
+        , y
+        )
 
 
 type alias Position =
-    { x : Int, y : Int }
+    { x : Int, y : Int, button : Int }
 
 
 type Tool
     = Pencil
     | Square
+
+
+type alias Color =
+    { hue : Int
+    , saturation : Float
+    , value : Float
+    , alpha : Float
+    , selecting : Bool
+    }
+
+
+rgbaToHex : Float -> Float -> Float -> Float -> String
+rgbaToHex r g b a =
+    "rgba(" ++ String.fromInt (round (r * 255)) ++ "," ++ String.fromInt (round (g * 255)) ++ "," ++ String.fromInt (round (b * 255)) ++ "," ++ String.fromFloat a ++ ")"
+
+
+rgba : Color -> String
+rgba color =
+    let
+        h =
+            toFloat color.hue / 360
+
+        s =
+            color.saturation
+
+        v =
+            color.value
+
+        i =
+            floor (h * 6)
+
+        f =
+            h * 6 - toFloat i
+
+        p =
+            v * (1 - s)
+
+        q =
+            v * (1 - f * s)
+
+        t =
+            v * (1 - (1 - f) * s)
+    in
+    case remainderBy 6 i of
+        0 ->
+            rgbaToHex v t p color.alpha
+
+        1 ->
+            rgbaToHex q v p color.alpha
+
+        2 ->
+            rgbaToHex p v t color.alpha
+
+        3 ->
+            rgbaToHex p q v color.alpha
+
+        4 ->
+            rgbaToHex t p v color.alpha
+
+        5 ->
+            rgbaToHex v p q color.alpha
+
+        _ ->
+            ""
 
 
 type alias Model =
@@ -33,10 +132,8 @@ type alias Model =
     , width : Int
     , height : Int
     , strokeWidth : Int
-    , strokeColor : String
-    , strokeAlpha : Int
-    , fillColor : String
-    , fillAlpha : Int
+    , strokeColor : Color
+    , fillColor : Color
     , dragStart : Position
     , dragContinue : List Position
     , tool : Tool
@@ -50,10 +147,8 @@ type Msg
     | ZoomIn
     | ZoomOut
     | StrokeWidth String
-    | StrokeColor String
-    | StrokeAlpha String
-    | FillColor String
-    | FillAlpha String
+    | ChangeStrokeColor Color
+    | ChangeFillColor Color
     | SetTool Tool
 
 
@@ -93,12 +188,146 @@ toHex v =
 
 topLeft : Position -> Position -> Position
 topLeft a b =
-    { x = min a.x b.x, y = min a.y b.y }
+    { a | x = min a.x b.x, y = min a.y b.y }
 
 
 bottomRight : Position -> Position -> Position
 bottomRight a b =
-    { x = max a.x b.x, y = max a.y b.y }
+    { a | x = max a.x b.x, y = max a.y b.y }
+
+
+changeHue : Color -> (Color -> Msg) -> String -> Msg
+changeHue color msg val =
+    case String.toInt val of
+        Just i ->
+            msg { color | hue = i }
+
+        Nothing ->
+            msg { color | hue = 0 }
+
+
+changeOpacity : Color -> (Color -> Msg) -> String -> Msg
+changeOpacity color msg val =
+    case String.toInt val of
+        Just i ->
+            msg { color | alpha = toFloat i / 100 }
+
+        Nothing ->
+            msg { color | alpha = 1 }
+
+
+changeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+changeSatVal color msg pos =
+    if pos.button == 0 then
+        msg
+            { color
+                | saturation = max 0 (min 1 (toFloat pos.x / 255))
+                , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+                , selecting = True
+            }
+
+    else
+        msg color
+
+
+maybeChangeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+maybeChangeSatVal color msg pos =
+    if color.selecting then
+        msg
+            { color
+                | saturation = max 0 (min 1 (toFloat pos.x / 255))
+                , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+            }
+
+    else
+        msg color
+
+
+endChangeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+endChangeSatVal color msg pos =
+    msg
+        { color
+            | saturation = max 0 (min 1 (toFloat pos.x / 255))
+            , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+            , selecting = False
+        }
+
+
+colorPicker : Color -> (Color -> Msg) -> Svg Msg
+colorPicker color msg =
+    div
+        [ class "color-picker" ]
+        [ svg
+            [ width "256"
+            , height "256"
+            , viewBox "0 0 256 256"
+            , on "mousedown" (Decode.map (changeSatVal color msg) decodePosition)
+            , on "mousemove" (Decode.map (maybeChangeSatVal color msg) decodePosition)
+            , on "mouseup" (Decode.map (endChangeSatVal color msg) decodePosition)
+            ]
+            [ defs
+                []
+                [ linearGradient
+                    [ id "g1" ]
+                    [ stop
+                        [ offset "0", stopColor "white" ]
+                        []
+                    , stop
+                        [ offset "1", stopColor "black" ]
+                        []
+                    ]
+                , linearGradient
+                    [ id "g2", gradientTransform "rotate(90)" ]
+                    [ stop
+                        [ offset "0", stopColor "white" ]
+                        []
+                    , stop
+                        [ offset "1", stopColor "black" ]
+                        []
+                    ]
+                ]
+            , rect
+                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill ("hsl(" ++ String.fromInt color.hue ++ ", 100%, 50%)") ]
+                []
+            , rect
+                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill "url('#g1')", style "mix-blend-mode:screen" ]
+                []
+            , rect
+                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill "url('#g2')", style "mix-blend-mode:multiply" ]
+                []
+            , circle
+                [ cx (String.fromFloat (color.saturation * 255))
+                , cy (String.fromFloat (255 - color.value * 255))
+                , r "8"
+                , fill (rgba { color | alpha = 1 })
+                , stroke "#fff"
+                , strokeWidth "2"
+                ]
+                []
+            ]
+        , input
+            [ type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "360"
+            , value (String.fromInt color.hue)
+            , class "hue-picker"
+            , style ("--selected-color:" ++ rgba { color | saturation = 1, value = 1, alpha = 1 })
+            , onInput (changeHue color msg)
+            ]
+            []
+        , input
+            [ type_ "range"
+            , step "1"
+            , value (String.fromFloat (color.alpha * 100))
+            , class "opacity-picker"
+            , style ("--selected-hue:" ++ rgba { color | alpha = 1 } ++ ";--selected-color:" ++ rgba color)
+            , onInput (changeOpacity color msg)
+            ]
+            []
+        , div
+            [ class "swatch", style ("--selected-color:" ++ rgba color) ]
+            []
+        ]
 
 
 styledRect : Position -> Position -> Model -> Svg Msg
@@ -115,8 +344,8 @@ styledRect start end model =
         , y (String.fromInt (tl.y // model.scale))
         , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat model.scale))
         , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat model.scale))
-        , stroke (model.strokeColor ++ toHex model.strokeAlpha)
-        , fill (model.fillColor ++ toHex model.fillAlpha)
+        , stroke (rgba model.strokeColor)
+        , fill (rgba model.fillColor)
         , strokeWidth (String.fromInt model.strokeWidth)
         ]
         []
@@ -129,14 +358,14 @@ pathPosition prefix pos =
 
 scaledPosition : Position -> Model -> Position
 scaledPosition pos model =
-    { x = pos.x // model.scale, y = pos.y // model.scale }
+    { pos | x = pos.x // model.scale, y = pos.y // model.scale }
 
 
 styledPath : Model -> List Position -> Svg Msg
 styledPath model next =
     path
         [ d (String.join " " (List.append [ pathPosition "M" model.dragStart ] (List.map (pathPosition "L") (List.append model.dragContinue next))))
-        , stroke (model.strokeColor ++ toHex model.strokeAlpha)
+        , stroke (rgba model.strokeColor)
         , strokeWidth (String.fromInt model.strokeWidth)
         , strokeLinecap "round"
         , strokeLinejoin "round"
@@ -171,7 +400,7 @@ pencilContinue model pos =
 
 
 pencilEnd : Model -> Position -> Model
-pencilEnd model pos =
+pencilEnd model _ =
     { model
         | shapes =
             List.append model.shapes
@@ -245,9 +474,10 @@ toolEnd model =
 
 decodePosition : Decode.Decoder Position
 decodePosition =
-    Decode.map2 Position
+    Decode.map3 Position
         (Decode.field "offsetX" Decode.int)
         (Decode.field "offsetY" Decode.int)
+        (Decode.field "button" Decode.int)
 
 
 init : Model
@@ -258,11 +488,21 @@ init =
     , width = 800
     , height = 600
     , strokeWidth = 5
-    , strokeColor = "#000000"
-    , strokeAlpha = 255
-    , fillColor = "#ffffff"
-    , fillAlpha = 255
-    , dragStart = { x = 0, y = 0 }
+    , strokeColor =
+        { hue = 0
+        , saturation = 1
+        , value = 1
+        , alpha = 1
+        , selecting = False
+        }
+    , fillColor =
+        { hue = 180
+        , saturation = 1
+        , value = 1
+        , alpha = 1
+        , selecting = False
+        }
+    , dragStart = { x = 0, y = 0, button = 0 }
     , dragContinue = []
     , tool = Pencil
     }
@@ -272,7 +512,11 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         StartShape pos ->
-            toolStart model pos
+            if pos.button == 0 then
+                toolStart model pos
+
+            else
+                model
 
         ContinueShape pos ->
             toolContinue model pos
@@ -297,37 +541,11 @@ update msg model =
                             0
             }
 
-        StrokeColor color ->
-            { model
-                | strokeColor = color
-            }
+        ChangeStrokeColor color ->
+            { model | strokeColor = color }
 
-        StrokeAlpha alpha ->
-            { model
-                | strokeAlpha =
-                    case String.toInt alpha of
-                        Just i ->
-                            i
-
-                        Nothing ->
-                            0
-            }
-
-        FillColor color ->
-            { model
-                | fillColor = color
-            }
-
-        FillAlpha alpha ->
-            { model
-                | fillAlpha =
-                    case String.toInt alpha of
-                        Just i ->
-                            i
-
-                        Nothing ->
-                            0
-            }
+        ChangeFillColor color ->
+            { model | fillColor = color }
 
         SetTool tool ->
             case tool of
@@ -348,7 +566,7 @@ view model =
                 ]
             , div [ class "tool-group" ]
                 [ label []
-                    [ text "Width:"
+                    [ text "Stroke Width:"
                     , input
                         [ type_ "range"
                         , Html.Attributes.min "1"
@@ -358,36 +576,6 @@ view model =
                         ]
                         []
                     , text (String.fromInt model.strokeWidth)
-                    ]
-                ]
-            , div [ class "tool-group" ]
-                [ label [] [ text "Stroke:", input [ type_ "Color", value model.strokeColor, onInput StrokeColor ] [] ]
-                , label []
-                    [ text "Opacity:"
-                    , input
-                        [ type_ "range"
-                        , Html.Attributes.min "0"
-                        , Html.Attributes.max "255"
-                        , value (String.fromInt model.strokeAlpha)
-                        , onInput StrokeAlpha
-                        ]
-                        []
-                    , text (String.fromInt (model.strokeAlpha * 100 // 255))
-                    ]
-                ]
-            , div [ class "tool-group" ]
-                [ label [] [ text "Fill:", input [ type_ "Color", value model.fillColor, onInput FillColor ] [] ]
-                , label []
-                    [ text "Opacity:"
-                    , input
-                        [ type_ "range"
-                        , Html.Attributes.min "0"
-                        , Html.Attributes.max "255"
-                        , value (String.fromInt model.fillAlpha)
-                        , onInput FillAlpha
-                        ]
-                        []
-                    , text (String.fromInt (model.fillAlpha * 100 // 255))
                     ]
                 ]
             ]
@@ -430,6 +618,13 @@ view model =
                 , on "mouseup" (Decode.map EndShape decodePosition)
                 ]
                 (List.append model.shapes model.preview)
+            , div
+                [ class "sidebar" ]
+                [ p [] [ text "Stroke Color" ]
+                , colorPicker model.strokeColor ChangeStrokeColor
+                , p [] [ text "Fill Color" ]
+                , colorPicker model.fillColor ChangeFillColor
+                ]
             ]
         ]
 
