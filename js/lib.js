@@ -11,6 +11,10 @@
     let dragTarget = null;
 
     document.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) {
+            return;
+        }
+
         document.body.classList.add('noscroll');
 
         // Don't select anything inside an SVG because we'll frequently end up
@@ -31,6 +35,10 @@
     }, { capture: true });
 
     document.addEventListener('mouseup', (e) => {
+        if (e.button !== 0) {
+            return;
+        }
+
         document.body.classList.remove('noscroll');
 
         if (dragTarget === null) {
@@ -44,5 +52,11 @@
         }
 
         dragTarget = null;
+    }, { capture: true });
+
+    document.addEventListener('contextmenu', (e) => {
+        if (dragTarget !== null) {
+            e.preventDefault();
+        }
     }, { capture: true });
 })();

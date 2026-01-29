@@ -434,12 +434,17 @@ squareContinue model pos =
 
 squareEnd : Model -> Position -> Model
 squareEnd model pos =
-    { model
-        | shapes =
-            List.append model.shapes
-                [ styledRect model.dragStart pos model ]
-        , preview = []
-    }
+    case model.preview of
+        [] ->
+            model
+
+        _ ->
+            { model
+                | shapes =
+                    List.append model.shapes
+                        [ styledRect model.dragStart pos model ]
+                , preview = []
+            }
 
 
 toolStart : Model -> Position -> Model
@@ -522,7 +527,11 @@ update msg model =
             toolContinue model pos
 
         EndShape pos ->
-            toolEnd model pos
+            if pos.button == 0 then
+                toolEnd model pos
+
+            else
+                model
 
         ZoomIn ->
             { model | scale = min (model.scale * 2) 16 }
