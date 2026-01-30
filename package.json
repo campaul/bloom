@@ -6,13 +6,13 @@
   },
   "scripts": {
     "build": "npm run build-elm && npm run build-js && npm run build-css && npm run build-html && npm run minify-js && npm run minify-css",
-    "build-css": "esbuild --bundle css/bloom.css --outfile=dist/bloom.css",
-    "build-elm": "elm make elm/Main.elm --optimize --output=dist/bloom.js",
-    "build-html": "cp html/index.html dist/",
-    "build-js": "esbuild js/lib.js --minify --outfile=dist/lib.min.js",
+    "build-css": "esbuild --bundle src/css/bloom.css --outfile=dist/bloom.css",
+    "build-elm": "elm make src/elm/Main.elm --optimize --output=dist/bloom.js",
+    "build-html": "cp src/html/index.html dist/",
+    "build-js": "esbuild src/js/lib.js --minify --outfile=dist/lib.min.js",
     "minify-js": "esbuild dist/bloom.js --minify --outfile=dist/bloom.min.js",
     "minify-css": "esbuild dist/bloom.css --minify --outfile=dist/bloom.min.css",
-    "format": "elm-format elm/ --yes",
+    "format": "elm-format src/elm/ --yes",
     "reactor": "elm reactor"
   }
 }
