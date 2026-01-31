@@ -25,6 +25,37 @@ input {
     margin: 0 8px;
 }
 
+label:has(input[type="radio"]) {
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    display: block;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+label:has(input[type="radio"]:checked) {
+    background-color: #444;
+}
+
+img.icon-button {
+    width: 24px;
+    height: 24px;
+    filter: invert(1);
+    padding: 6px;
+    border-radius: 4px;
+}
+
+img.icon-button:hover {
+    background-color: #bbb;
+}
+
+input[type="radio"] {
+    display: none;
+}
+
 p {
     margin: 10px 0 0 0;
     padding: 0 10px;
@@ -46,19 +77,19 @@ p {
 .toolbar {
     border-bottom: 1px solid black;
     background-color: #222;
+    padding: 8px 0;
 }
 
-.toolbar, .tool-group {
+.toolbar, .toolbar .tool-group {
     display: flex;
     flex-direction: row;
     height: 32px;
-    padding: 8px 0;
     align-items: center;
 }
 
 .tool-group {
-    gap: 4px;
-    padding: 0 16px;
+    gap: 8px;
+    padding: 16px;
 }
 
 .sidebar .tool-group {
@@ -143,4 +174,8 @@ p {
 
 .noscroll .viewport {
     overflow: hidden;
+}
+
+.tools {
+    text-align: center;
 }

@@ -10,8 +10,8 @@ module Main exposing (..)
 
 import Bitwise exposing (and, shiftRightBy)
 import Browser
-import Html exposing (Html, button, div, input, label, p)
-import Html.Attributes exposing (checked, class, name, step, type_, value)
+import Html exposing (Html, div, img, input, label, p)
+import Html.Attributes exposing (checked, class, name, src, step, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
 import Svg
@@ -496,15 +496,15 @@ init =
     , strokeColor =
         { hue = 0
         , saturation = 1
-        , value = 1
+        , value = 0
         , alpha = 1
         , selecting = False
         }
     , fillColor =
-        { hue = 180
-        , saturation = 1
+        { hue = 0
+        , saturation = 0
         , value = 1
-        , alpha = 1
+        , alpha = 0
         , selecting = False
         }
     , dragStart = { x = 0, y = 0, button = 0 }
@@ -571,8 +571,8 @@ view model =
         [ div [ class "toolbars" ]
             [ div [ class "toolbar" ]
                 [ div [ class "tool-group" ]
-                    [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
-                    , button [ onClick ZoomIn ] [ text "Zoom In" ]
+                    [ img [ onClick ZoomOut, src "assets/icons/zoom-out.svg", class "icon-button" ] []
+                    , img [ onClick ZoomIn, src "assets/icons/zoom-in.svg", class "icon-button" ] []
                     ]
                 , div [ class "tool-group" ]
                     [ label []
@@ -590,8 +590,8 @@ view model =
                     ]
                 ]
             ]
-        , div [ class "sidebar" ]
-            [ p [] [ text "Tool" ]
+        , div [ class "sidebar tools" ]
+            [ p [] [ text "Tools" ]
             , div [ class "tool-group" ]
                 [ label []
                     [ input
@@ -601,7 +601,7 @@ view model =
                         , onClick (SetTool Pencil)
                         ]
                         []
-                    , text "Pencil"
+                    , img [ src "assets/icons/pencil.svg", class "icon-button" ] []
                     ]
                 , label []
                     [ input
@@ -611,7 +611,7 @@ view model =
                         , onClick (SetTool Square)
                         ]
                         []
-                    , text "Square"
+                    , img [ src "assets/icons/square.svg", class "icon-button" ] []
                     ]
                 ]
             ]

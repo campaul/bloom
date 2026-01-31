@@ -5,7 +5,8 @@
     "esbuild": "^0.27.2"
   },
   "scripts": {
-    "build": "npm run build-elm && npm run build-js && npm run build-css && npm run build-html && npm run minify-js && npm run minify-css",
+    "build": "npm run build-elm && npm run build-js && npm run build-css && npm run build-html && npm run build-assets && npm run minify-js && npm run minify-css",
+    "build-assets": "cp -r assets dist",
     "build-css": "esbuild --bundle src/css/bloom.css --outfile=dist/bloom.css",
     "build-elm": "elm make src/elm/Main.elm --optimize --output=dist/bloom.js",
     "build-html": "cp src/html/index.html dist/",
