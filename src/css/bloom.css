@@ -32,8 +32,15 @@ p {
 
 .application {
     height: 100vh;
-    display: flex;
-    flex-direction: column;
+    width: 100vw;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 1fr;
+}
+
+.toolbars {
+    grid-column-start: 1;
+    grid-column-end: 4;
 }
 
 .toolbar {
@@ -54,6 +61,11 @@ p {
     padding: 0 16px;
 }
 
+.sidebar .tool-group {
+    display: flex;
+    flex-direction: column;
+}
+
 .tool-group:not(:first-child) {
     border-left: 1px solid black;
 }
@@ -65,16 +77,17 @@ p {
 .viewport {
     overflow: scroll;
     overscroll-behavior: none;
-    flex: 1;
+    grid-column-start: 2;
 }
 
 .sidebar {
-    position: fixed;
     bottom: 0;
     right: 0;
     background-color: #222;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow-y: scroll;
 }
 
 .color-picker {

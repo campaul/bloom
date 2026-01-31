@@ -568,28 +568,31 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ class "application" ]
-        [ div [ class "toolbar" ]
-            [ div [ class "tool-group" ]
-                [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
-                , button [ onClick ZoomIn ] [ text "Zoom In" ]
-                ]
-            , div [ class "tool-group" ]
-                [ label []
-                    [ text "Stroke Width:"
-                    , input
-                        [ type_ "range"
-                        , Html.Attributes.min "1"
-                        , Html.Attributes.max "100"
-                        , value (String.fromInt model.strokeWidth)
-                        , onInput StrokeWidth
+        [ div [ class "toolbars" ]
+            [ div [ class "toolbar" ]
+                [ div [ class "tool-group" ]
+                    [ button [ onClick ZoomOut ] [ text "Zoom Out" ]
+                    , button [ onClick ZoomIn ] [ text "Zoom In" ]
+                    ]
+                , div [ class "tool-group" ]
+                    [ label []
+                        [ text "Stroke Width:"
+                        , input
+                            [ type_ "range"
+                            , Html.Attributes.min "1"
+                            , Html.Attributes.max "100"
+                            , value (String.fromInt model.strokeWidth)
+                            , onInput StrokeWidth
+                            ]
+                            []
+                        , text (String.fromInt model.strokeWidth)
                         ]
-                        []
-                    , text (String.fromInt model.strokeWidth)
                     ]
                 ]
             ]
-        , div [ class "toolbar" ]
-            [ div [ class "tool-group" ]
+        , div [ class "sidebar" ]
+            [ p [] [ text "Tool" ]
+            , div [ class "tool-group" ]
                 [ label []
                     [ input
                         [ type_ "radio"
@@ -627,13 +630,13 @@ view model =
                 , on "mouseup" (Decode.map EndShape decodePosition)
                 ]
                 (List.append model.shapes model.preview)
-            , div
-                [ class "sidebar" ]
-                [ p [] [ text "Stroke Color" ]
-                , colorPicker model.strokeColor ChangeStrokeColor
-                , p [] [ text "Fill Color" ]
-                , colorPicker model.fillColor ChangeFillColor
-                ]
+        ]
+        , div
+            [ class "sidebar" ]
+            [ p [] [ text "Stroke Color" ]
+            , colorPicker model.strokeColor ChangeStrokeColor
+            , p [] [ text "Fill Color" ]
+            , colorPicker model.fillColor ChangeFillColor
             ]
         ]
 
