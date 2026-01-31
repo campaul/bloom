@@ -492,7 +492,7 @@ init =
     , scale = 1
     , width = 800
     , height = 600
-    , strokeWidth = 5
+    , strokeWidth = 3
     , strokeColor =
         { hue = 0
         , saturation = 1
@@ -585,7 +585,7 @@ view model =
                             , onInput StrokeWidth
                             ]
                             []
-                        , text (String.fromInt model.strokeWidth)
+                        , text ((String.fromInt model.strokeWidth) ++ "px")
                         ]
                     ]
                 ]
