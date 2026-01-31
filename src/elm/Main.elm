@@ -502,7 +502,7 @@ init =
         }
     , fillColor =
         { hue = 0
-        , saturation = 0
+        , saturation = 1
         , value = 1
         , alpha = 0
         , selecting = False
