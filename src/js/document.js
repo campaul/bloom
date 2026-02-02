@@ -6,9 +6,12 @@
  *    them. This includes if you drag outside the window.
  * 2) Prevent things from scrolling when the mouse is dragged outside the
  *    window by adding the "noscroll" class to the body.
+ * 3) Prevent mouse ctrl + wheel or ctrl + +/- from zooming page so they can
+ *    instead zoom the viewport.
  */
 (() => {
     let dragTarget = null;
+
 
     document.addEventListener('mousedown', (e) => {
         if (e.button !== 0) {
@@ -22,6 +25,7 @@
         dragTarget = e.target.ownerSVGElement || e.target;
     }, { capture: true });
 
+
     document.addEventListener('mousemove', (e) => {
         if (dragTarget === null) {
             return;
@@ -33,6 +37,7 @@
             }));
         }
     }, { capture: true });
+
 
     document.addEventListener('mouseup', (e) => {
         if (e.button !== 0) {
@@ -54,8 +59,23 @@
         dragTarget = null;
     }, { capture: true });
 
+
     document.addEventListener('contextmenu', (e) => {
         if (dragTarget !== null) {
+            e.preventDefault();
+        }
+    }, { capture: true });
+
+
+    document.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, { capture: true, passive: false });
+
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey) {
             e.preventDefault();
         }
     }, { capture: true });

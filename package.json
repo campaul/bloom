@@ -10,7 +10,7 @@
     "build-css": "esbuild --bundle src/css/bloom.css --outfile=dist/bloom.css",
     "build-elm": "elm make src/elm/Main.elm --optimize --output=dist/bloom.js",
     "build-html": "cp src/html/index.html dist/",
-    "build-js": "esbuild src/js/lib.js --minify --outfile=dist/lib.min.js",
+    "build-js": "esbuild src/js/document.js --minify --outfile=dist/document.min.js",
     "minify-js": "esbuild dist/bloom.js --minify --outfile=dist/bloom.min.js",
     "minify-css": "esbuild dist/bloom.css --minify --outfile=dist/bloom.min.css",
     "format": "elm-format src/elm/ --yes",
