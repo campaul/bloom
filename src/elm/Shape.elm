@@ -1,6 +1,3 @@
--- TODO: All the Ints in this file should be Floats
-
-
 module Shape exposing (..)
 
 import Svg exposing (Svg, path, rect)
@@ -21,8 +18,8 @@ import Svg.Attributes
 
 type alias RectProps =
     { name : String
-    , x : Int
-    , y : Int
+    , x : Float
+    , y : Float
     , width : Float
     , height : Float
     , stroke : String
@@ -62,8 +59,8 @@ toSvg shape =
     case shape of
         Rect props ->
             rect
-                [ x (String.fromInt props.x)
-                , y (String.fromInt props.y)
+                [ x (String.fromFloat props.x)
+                , y (String.fromFloat props.y)
                 , width (String.fromFloat props.width)
                 , height (String.fromFloat props.height)
                 , stroke props.stroke

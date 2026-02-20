@@ -1,6 +1,5 @@
 -- TODO: pencil doesn't handle click without drag
 -- TODO: move scaling out of styledRect
--- TODO: scale rounding errors (see Floats comment in Shape.elm)
 
 
 module Main exposing (..)
@@ -47,7 +46,7 @@ import Svg.Attributes
 
 
 type alias Position =
-    { x : Int, y : Int, button : Int }
+    { x : Float, y : Float, button : Int }
 
 
 type Tool
@@ -122,7 +121,7 @@ rgba color =
 type alias Model =
     { shapes : List Shape
     , preview : List Shape
-    , scale : Int
+    , scale : Float
     , width : Int
     , height : Int
     , strokeWidth : Int
@@ -215,8 +214,8 @@ changeSatVal color msg pos =
     if pos.button == 0 then
         msg
             { color
-                | saturation = max 0 (min 1 (toFloat pos.x / 255))
-                , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+                | saturation = max 0 (min 1 (pos.x / 255))
+                , value = max 0 (min 1 ((255 - pos.y) / 255))
                 , selecting = True
             }
 
@@ -229,8 +228,8 @@ maybeChangeSatVal color msg pos =
     if color.selecting then
         msg
             { color
-                | saturation = max 0 (min 1 (toFloat pos.x / 255))
-                , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+                | saturation = max 0 (min 1 pos.x / 255)
+                , value = max 0 (min 1 ((255 - pos.y) / 255))
             }
 
     else
@@ -241,8 +240,8 @@ endChangeSatVal : Color -> (Color -> Msg) -> Position -> Msg
 endChangeSatVal color msg pos =
     msg
         { color
-            | saturation = max 0 (min 1 (toFloat pos.x / 255))
-            , value = max 0 (min 1 ((255 - toFloat pos.y) / 255))
+            | saturation = max 0 (min 1 (pos.x / 255))
+            , value = max 0 (min 1 ((255 - pos.y) / 255))
             , selecting = False
         }
 
@@ -335,10 +334,10 @@ styledRect start end model =
     in
     Shape.Rect
         { name = "Rect"
-        , x = tl.x // model.scale
-        , y = tl.y // model.scale
-        , width = toFloat (br.x - tl.x) / toFloat model.scale
-        , height = toFloat (br.y - tl.y) / toFloat model.scale
+        , x = tl.x / model.scale
+        , y = tl.y / model.scale
+        , width = (br.x - tl.x) / model.scale
+        , height = (br.y - tl.y) / model.scale
         , stroke = rgba model.strokeColor
         , fill = rgba model.fillColor
         , strokeWidth = model.strokeWidth
@@ -347,12 +346,12 @@ styledRect start end model =
 
 pathPosition : String -> Position -> String
 pathPosition prefix pos =
-    prefix ++ String.fromInt pos.x ++ " " ++ String.fromInt pos.y
+    prefix ++ String.fromFloat pos.x ++ " " ++ String.fromFloat pos.y
 
 
 scaledPosition : Position -> Model -> Position
 scaledPosition pos model =
-    { pos | x = pos.x // model.scale, y = pos.y // model.scale }
+    { pos | x = pos.x / model.scale, y = pos.y / model.scale }
 
 
 styledPath : Model -> List Position -> Shape
@@ -474,8 +473,8 @@ toolEnd model =
 decodePosition : Decode.Decoder Position
 decodePosition =
     Decode.map3 Position
-        (Decode.field "offsetX" Decode.int)
-        (Decode.field "offsetY" Decode.int)
+        (Decode.field "offsetX" Decode.float)
+        (Decode.field "offsetY" Decode.float)
         (Decode.field "button" Decode.int)
 
 
@@ -531,7 +530,7 @@ update msg model =
             { model | scale = min (model.scale * 2) 16 }
 
         ZoomOut ->
-            { model | scale = max (model.scale // 2) 1 }
+            { model | scale = max (model.scale / 2) 1 }
 
         StrokeWidth width ->
             { model
@@ -618,8 +617,8 @@ view model =
             ]
         , div [ class "viewport" ]
             [ svg
-                [ width (String.fromInt (model.width * model.scale))
-                , height (String.fromInt (model.height * model.scale))
+                [ width (String.fromInt (model.width * floor model.scale))
+                , height (String.fromInt (model.height * floor model.scale))
                 , viewBox
                     ("0 0 "
                         ++ String.fromInt model.width
