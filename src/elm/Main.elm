@@ -1,26 +1,23 @@
 -- TODO: pencil doesn't handle click without drag
 -- TODO: move scaling out of styledRect
--- TODO: ignore right clicks
--- TODO: handle going off canvas
--- This should be handled by processing all mousemove/mouseup events on the window
--- TODO: scale rounding errors
+-- TODO: scale rounding errors (see Floats comment in Shape.elm)
 
 
 module Main exposing (..)
 
 import Bitwise exposing (and, shiftRightBy)
 import Browser
-import Html exposing (Html, div, img, input, label, p)
+import Html exposing (Html, div, img, input, label, li, p, ul)
 import Html.Attributes exposing (checked, class, name, src, step, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
+import Shape exposing (Shape)
 import Svg
     exposing
         ( Svg
         , circle
         , defs
         , linearGradient
-        , path
         , rect
         , stop
         , svg
@@ -30,7 +27,6 @@ import Svg.Attributes
     exposing
         ( cx
         , cy
-        , d
         , fill
         , gradientTransform
         , height
@@ -41,8 +37,6 @@ import Svg.Attributes
         , ry
         , stopColor
         , stroke
-        , strokeLinecap
-        , strokeLinejoin
         , strokeWidth
         , style
         , viewBox
@@ -126,8 +120,8 @@ rgba color =
 
 
 type alias Model =
-    { shapes : List (Svg Msg)
-    , preview : List (Svg Msg)
+    { shapes : List Shape
+    , preview : List Shape
     , scale : Int
     , width : Int
     , height : Int
@@ -330,7 +324,7 @@ colorPicker color msg =
         ]
 
 
-styledRect : Position -> Position -> Model -> Svg Msg
+styledRect : Position -> Position -> Model -> Shape
 styledRect start end model =
     let
         tl =
@@ -339,16 +333,16 @@ styledRect start end model =
         br =
             bottomRight start end
     in
-    rect
-        [ x (String.fromInt (tl.x // model.scale))
-        , y (String.fromInt (tl.y // model.scale))
-        , width (String.fromFloat (toFloat (br.x - tl.x) / toFloat model.scale))
-        , height (String.fromFloat (toFloat (br.y - tl.y) / toFloat model.scale))
-        , stroke (rgba model.strokeColor)
-        , fill (rgba model.fillColor)
-        , strokeWidth (String.fromInt model.strokeWidth)
-        ]
-        []
+    Shape.Rect
+        { name = "Rect"
+        , x = tl.x // model.scale
+        , y = tl.y // model.scale
+        , width = toFloat (br.x - tl.x) / toFloat model.scale
+        , height = toFloat (br.y - tl.y) / toFloat model.scale
+        , stroke = rgba model.strokeColor
+        , fill = rgba model.fillColor
+        , strokeWidth = model.strokeWidth
+        }
 
 
 pathPosition : String -> Position -> String
@@ -361,17 +355,17 @@ scaledPosition pos model =
     { pos | x = pos.x // model.scale, y = pos.y // model.scale }
 
 
-styledPath : Model -> List Position -> Svg Msg
+styledPath : Model -> List Position -> Shape
 styledPath model next =
-    path
-        [ d (String.join " " (List.append [ pathPosition "M" model.dragStart ] (List.map (pathPosition "L") (List.append model.dragContinue next))))
-        , stroke (rgba model.strokeColor)
-        , strokeWidth (String.fromInt model.strokeWidth)
-        , strokeLinecap "round"
-        , strokeLinejoin "round"
-        , fill "#00000000"
-        ]
-        []
+    Shape.Path
+        { name = "Path"
+        , d = String.join " " (List.append [ pathPosition "M" model.dragStart ] (List.map (pathPosition "L") (List.append model.dragContinue next)))
+        , stroke = rgba model.strokeColor
+        , strokeWidth = model.strokeWidth
+        , strokeLinecap = "round"
+        , strokeLinejoin = "round"
+        , fill = "#00000000"
+        }
 
 
 pencilStart : Model -> Position -> Model
@@ -565,6 +559,13 @@ update msg model =
                     { model | tool = Square }
 
 
+layerView : Shape -> Html Msg
+layerView shape =
+    li
+        []
+        [ text (Shape.name shape) ]
+
+
 view : Model -> Html Msg
 view model =
     div [ class "application" ]
@@ -585,7 +586,7 @@ view model =
                             , onInput StrokeWidth
                             ]
                             []
-                        , text ((String.fromInt model.strokeWidth) ++ "px")
+                        , text (String.fromInt model.strokeWidth ++ "px")
                         ]
                     ]
                 ]
@@ -629,14 +630,18 @@ view model =
                 , on "mousemove" (Decode.map ContinueShape decodePosition)
                 , on "mouseup" (Decode.map EndShape decodePosition)
                 ]
-                (List.append model.shapes model.preview)
-        ]
+                (List.map Shape.toSvg (List.append model.shapes model.preview))
+            ]
         , div
             [ class "sidebar" ]
             [ p [] [ text "Stroke Color" ]
             , colorPicker model.strokeColor ChangeStrokeColor
             , p [] [ text "Fill Color" ]
             , colorPicker model.fillColor ChangeFillColor
+            , p [] [ text "Layers" ]
+            , ul
+                []
+                (List.map layerView model.shapes)
             ]
         ]
 
