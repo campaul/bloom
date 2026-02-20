@@ -4,7 +4,6 @@
 
 module Main exposing (..)
 
-import Bitwise exposing (and, shiftRightBy)
 import Browser
 import Html exposing (Html, div, img, input, label, li, p, ul)
 import Html.Attributes exposing (checked, class, name, src, step, type_, value)
@@ -143,40 +142,6 @@ type Msg
     | ChangeStrokeColor Color
     | ChangeFillColor Color
     | SetTool Tool
-
-
-toHexDigit : Int -> String
-toHexDigit v =
-    if v < 10 then
-        String.fromInt v
-
-    else
-        case v of
-            10 ->
-                "a"
-
-            11 ->
-                "b"
-
-            12 ->
-                "c"
-
-            13 ->
-                "d"
-
-            14 ->
-                "e"
-
-            15 ->
-                "f"
-
-            _ ->
-                "0"
-
-
-toHex : Int -> String
-toHex v =
-    toHexDigit (and 15 (shiftRightBy 4 v)) ++ toHexDigit (and 15 v)
 
 
 topLeft : Position -> Position -> Position
