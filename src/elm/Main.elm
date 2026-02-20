@@ -228,7 +228,7 @@ maybeChangeSatVal color msg pos =
     if color.selecting then
         msg
             { color
-                | saturation = max 0 (min 1 pos.x / 255)
+                | saturation = max 0 (min 1 (pos.x / 255))
                 , value = max 0 (min 1 ((255 - pos.y) / 255))
             }
 
