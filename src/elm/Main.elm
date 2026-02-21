@@ -464,7 +464,14 @@ layerView : Shape -> Html Msg
 layerView shape =
     li
         []
-        [ text (Shape.name shape) ]
+        [ svg
+            [ width "32"
+            , height "32"
+            , viewBox "0 0 800 600"
+            ]
+            [ Shape.toSvg shape ]
+        , text (Shape.name shape)
+        ]
 
 
 view : Model -> Html Msg
@@ -541,8 +548,8 @@ view model =
             , colorPicker model.fillColor ChangeFillColor
             , p [] [ text "Layers" ]
             , ul
-                []
-                (List.map layerView model.shapes)
+                [ class "layers" ]
+                (List.map layerView (List.reverse model.shapes))
             ]
         ]
 
