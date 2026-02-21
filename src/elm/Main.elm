@@ -1,7 +1,3 @@
--- TODO: pencil doesn't handle click without drag
--- TODO: move scaling out of styledRect
-
-
 module Main exposing (..)
 
 import Browser
@@ -236,10 +232,10 @@ styledRect start end model =
     in
     Shape.Rect
         { name = "Rect"
-        , x = tl.x / model.scale
-        , y = tl.y / model.scale
-        , width = (br.x - tl.x) / model.scale
-        , height = (br.y - tl.y) / model.scale
+        , x = tl.x
+        , y = tl.y
+        , width = br.x - tl.x
+        , height = br.y - tl.y
         , stroke = rgba model.strokeColor
         , fill = rgba model.fillColor
         , strokeWidth = model.strokeWidth
@@ -271,10 +267,14 @@ styledPath model next =
 
 pencilStart : Model -> Position -> Model
 pencilStart model pos =
-    { model
-        | dragStart = scaledPosition pos model
-        , preview = [ styledPath model [] ]
-    }
+    let
+        m =
+            { model
+                | dragStart = scaledPosition pos model
+                , dragContinue = [ scaledPosition pos model ]
+            }
+    in
+    { m | preview = [ styledPath m [] ] }
 
 
 pencilContinue : Model -> Position -> Model
@@ -310,7 +310,7 @@ squareStart model pos =
     { model
         | dragStart = pos
         , preview =
-            [ styledRect pos pos model ]
+            [ styledRect (scaledPosition pos model) (scaledPosition pos model) model ]
     }
 
 
@@ -323,7 +323,7 @@ squareContinue model pos =
         _ ->
             { model
                 | preview =
-                    [ styledRect model.dragStart pos model ]
+                    [ styledRect (scaledPosition model.dragStart model) (scaledPosition pos model) model ]
             }
 
 
@@ -337,7 +337,7 @@ squareEnd model pos =
             { model
                 | shapes =
                     List.append model.shapes
-                        [ styledRect model.dragStart pos model ]
+                        [ styledRect (scaledPosition model.dragStart model) (scaledPosition pos model) model ]
                 , preview = []
             }
 
