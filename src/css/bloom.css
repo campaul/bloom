@@ -198,3 +198,7 @@ ul.layers > li {
     align-items: center;
     gap: 8px;
 }
+
+ul.layers > li.selected {
+    background-color: #1D84B5;
+}

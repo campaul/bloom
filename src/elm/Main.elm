@@ -62,6 +62,7 @@ type alias Model =
     , dragStart : Position
     , dragContinue : List Position
     , tool : Tool
+    , selected : Maybe Shape
     }
 
 
@@ -75,6 +76,7 @@ type Msg
     | ChangeStrokeColor Color
     | ChangeFillColor Color
     | SetTool Tool
+    | Select Shape
 
 
 topLeft : Position -> Position -> Position
@@ -405,6 +407,7 @@ init =
     , dragStart = { x = 0, y = 0, button = 0 }
     , dragContinue = []
     , tool = Pencil
+    , selected = Nothing
     }
 
 
@@ -459,11 +462,22 @@ update msg model =
                 Square ->
                     { model | tool = Square }
 
+        Select shape ->
+            { model | selected = Just shape }
 
-layerView : Shape -> Html Msg
-layerView shape =
+
+layerView : Model -> Shape -> Html Msg
+layerView model shape =
+    let
+        className =
+            if Just shape == model.selected then
+                "selected"
+
+            else
+                ""
+    in
     li
-        []
+        [ onClick (Select shape), class className ]
         [ svg
             [ width "32"
             , height "32"
@@ -549,7 +563,7 @@ view model =
             , p [] [ text "Layers" ]
             , ul
                 [ class "layers" ]
-                (List.map layerView (List.reverse model.shapes))
+                (List.map (layerView model) (List.reverse model.shapes))
             ]
         ]
 
