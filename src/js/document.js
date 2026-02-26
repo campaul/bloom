@@ -93,7 +93,7 @@
 
 
     document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey) {
+        if (e.ctrlKey && (e.key == '+' || e.key == '-')) {
             e.preventDefault();
         }
     }, { capture: true });
