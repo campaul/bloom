@@ -298,13 +298,18 @@ pencilContinue model pos =
 
 pencilEnd : Model -> Position -> Model
 pencilEnd model _ =
-    { model
-        | shapes =
-            List.append model.shapes
-                [ styledPath model [] ]
-        , preview = []
-        , dragContinue = []
-    }
+    case model.preview of
+        [] ->
+            model
+
+        _ ->
+            { model
+                | shapes =
+                    List.append model.shapes
+                        [ styledPath model [] ]
+                , preview = []
+                , dragContinue = []
+            }
 
 
 squareStart : Model -> Position -> Model
