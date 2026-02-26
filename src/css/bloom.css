@@ -175,6 +175,15 @@ p {
         repeating-conic-gradient(#fff 0% 25%, #ccc 25% 50%) repeat 32px / 32px;
 }
 
+button.swatch {
+    margin: 0;
+    height: 100%;
+    width: 64px;
+    margin-left: 8px;
+    border: 1px solid #bbb;
+    border-radius: 0;
+}
+
 .noscroll .viewport {
     overflow: hidden;
 }
@@ -186,6 +195,7 @@ p {
 ul.layers {
     padding: 0;
     margin: 0;
+    min-width: 250px;
 }
 
 ul.layers > li {
@@ -201,4 +211,32 @@ ul.layers > li {
 
 ul.layers > li.selected {
     background-color: #1D84B5;
+}
+
+button[popovertarget = "stroke-dialog"] {
+    anchor-name: --stroke-picker;
+}
+
+button[popovertarget = "fill-dialog"] {
+    anchor-name: --fill-picker;
+}
+
+#stroke-dialog, #fill-dialog {
+    margin: 0;
+    position: absolute;
+    position-area: bottom span-right;
+
+    padding: 0;
+    border-radius: 0 10px 10px 10px;
+    margin-top: 3px;
+    border: 1px solid white;
+    box-shadow: 0 0 5px black;
+}
+
+#stroke-dialog {
+    position-anchor: --stroke-picker;
+}
+
+#fill-dialog {
+    position-anchor: --fill-picker;
 }

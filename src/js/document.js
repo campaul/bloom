@@ -8,6 +8,7 @@
  *    window by adding the "noscroll" class to the body.
  * 3) Prevent mouse ctrl + wheel or ctrl + +/- from zooming page so they can
  *    instead zoom the viewport.
+ * 4) Close popovers on mousedown instead of mouseup
  */
 (() => {
     let dragTarget = null;
@@ -17,6 +18,12 @@
         if (e.button !== 0) {
             return;
         }
+
+        document.querySelectorAll('[popover]').forEach(el => {
+            if (!el.contains(e.target)) {
+                el.hidePopover();
+            }
+        });
 
         document.body.classList.add('noscroll');
 

@@ -2,8 +2,8 @@ module Main exposing (..)
 
 import Browser
 import Color exposing (Color, rgba)
-import Html exposing (Html, div, img, input, label, li, p, ul)
-import Html.Attributes exposing (checked, class, name, src, step, type_, value)
+import Html exposing (Html, button, div, img, input, label, li, node, p, ul)
+import Html.Attributes exposing (attribute, checked, class, name, src, step, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as Decode
 import Shape exposing (Shape)
@@ -146,8 +146,8 @@ endChangeSatVal color msg pos =
         }
 
 
-colorPicker : Color -> (Color -> Msg) -> Svg Msg
-colorPicker color msg =
+colorPicker : String -> Color -> (Color -> Msg) -> Svg Msg
+colorPicker prefix color msg =
     div
         [ class "color-picker" ]
         [ svg
@@ -161,7 +161,7 @@ colorPicker color msg =
             [ defs
                 []
                 [ linearGradient
-                    [ id "g1" ]
+                    [ id (prefix ++ "-g1") ]
                     [ stop
                         [ offset "0", stopColor "white" ]
                         []
@@ -170,7 +170,7 @@ colorPicker color msg =
                         []
                     ]
                 , linearGradient
-                    [ id "g2", gradientTransform "rotate(90)" ]
+                    [ id (prefix ++ "-g2"), gradientTransform "rotate(90)" ]
                     [ stop
                         [ offset "0", stopColor "white" ]
                         []
@@ -183,10 +183,10 @@ colorPicker color msg =
                 [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill ("hsl(" ++ String.fromInt color.hue ++ ", 100%, 50%)") ]
                 []
             , rect
-                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill "url('#g1')", style "mix-blend-mode:screen" ]
+                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill ("url('#" ++ prefix ++ "-g1')"), style "mix-blend-mode:screen" ]
                 []
             , rect
-                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill "url('#g2')", style "mix-blend-mode:multiply" ]
+                [ x "0", y "0", rx "4", ry "4", width "256", height "256", fill ("url('#" ++ prefix ++ "-g2')"), style "mix-blend-mode:multiply" ]
                 []
             , circle
                 [ cx (String.fromFloat (color.saturation * 255))
@@ -399,9 +399,9 @@ init =
         }
     , fillColor =
         { hue = 0
-        , saturation = 1
+        , saturation = 0
         , value = 1
-        , alpha = 0
+        , alpha = 1
         , selecting = False
         }
     , dragStart = { x = 0, y = 0, button = 0 }
@@ -499,7 +499,29 @@ view model =
                     ]
                 , div [ class "tool-group" ]
                     [ label []
-                        [ text "Stroke Width:"
+                        [ text "Fill"
+                        , button
+                            [ attribute "popovertarget" "fill-dialog"
+                            , class "swatch"
+                            , style ("--selected-color:" ++ rgba model.fillColor)
+                            ]
+                            []
+                        ]
+                    ]
+                , div [ class "tool-group" ]
+                    [ label []
+                        [ text "Stroke"
+                        , button
+                            [ attribute "popovertarget" "stroke-dialog"
+                            , class "swatch"
+                            , style ("--selected-color:" ++ rgba model.strokeColor)
+                            ]
+                            []
+                        ]
+                    ]
+                , div [ class "tool-group" ]
+                    [ label []
+                        [ text "Width:"
                         , input
                             [ type_ "range"
                             , Html.Attributes.min "1"
@@ -556,15 +578,21 @@ view model =
             ]
         , div
             [ class "sidebar" ]
-            [ p [] [ text "Stroke Color" ]
-            , colorPicker model.strokeColor ChangeStrokeColor
-            , p [] [ text "Fill Color" ]
-            , colorPicker model.fillColor ChangeFillColor
-            , p [] [ text "Layers" ]
+            [ p [] [ text "Layers" ]
             , ul
                 [ class "layers" ]
                 (List.map (layerView model) (List.reverse model.shapes))
             ]
+        , node "dialog"
+            [ id "fill-dialog"
+            , attribute "popover" "auto"
+            ]
+            [ colorPicker "fill" model.fillColor ChangeFillColor ]
+        , node "dialog"
+            [ id "stroke-dialog"
+            , attribute "popover" "auto"
+            ]
+            [ colorPicker "stroke" model.strokeColor ChangeStrokeColor ]
         ]
 
 
