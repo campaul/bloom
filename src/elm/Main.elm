@@ -117,7 +117,8 @@ changeSatVal color msg pos =
                 | saturation = max 0 (min 1 (pos.x / 255))
                 , value = max 0 (min 1 ((255 - pos.y) / 255))
                 , selecting = True
-            } True
+            }
+            True
 
     else
         msg color False
@@ -130,7 +131,8 @@ maybeChangeSatVal color msg pos =
             { color
                 | saturation = max 0 (min 1 (pos.x / 255))
                 , value = max 0 (min 1 ((255 - pos.y) / 255))
-            } False
+            }
+            False
 
     else
         msg color False
@@ -143,7 +145,8 @@ endChangeSatVal color msg pos =
             | saturation = max 0 (min 1 (pos.x / 255))
             , value = max 0 (min 1 ((255 - pos.y) / 255))
             , selecting = False
-        } True
+        }
+        True
 
 
 colorPicker : String -> Color -> (Color -> Bool -> Msg) -> Svg Msg
@@ -273,7 +276,6 @@ pencilStart model pos =
         m =
             { model
                 | dragStart = scaledPosition pos model
-                , dragContinue = [ scaledPosition pos model ]
             }
     in
     { m | preview = [ styledPath m [] ] }
@@ -298,9 +300,12 @@ pencilContinue model pos =
 
 pencilEnd : Model -> Position -> Model
 pencilEnd model _ =
-    case model.preview of
+    case model.dragContinue of
         [] ->
-            model
+            { model
+                | preview = []
+                , dragContinue = []
+            }
 
         _ ->
             { model
@@ -341,12 +346,16 @@ squareEnd model pos =
             model
 
         _ ->
-            { model
-                | shapes =
-                    List.append model.shapes
-                        [ styledRect (scaledPosition model.dragStart model) (scaledPosition pos model) model ]
-                , preview = []
-            }
+            if model.dragStart.x /= pos.x || model.dragStart.y /= pos.y then
+                { model
+                    | shapes =
+                        List.append model.shapes
+                            [ styledRect (scaledPosition model.dragStart model) (scaledPosition pos model) model ]
+                    , preview = []
+                }
+
+            else
+                { model | preview = [] }
 
 
 toolStart : Model -> Position -> Model
@@ -456,12 +465,14 @@ update msg model =
         ChangeStrokeColor color changeSelecting ->
             if changeSelecting then
                 { model | strokeColor = color }
+
             else
                 { model | strokeColor = { color | selecting = model.strokeColor.selecting } }
 
         ChangeFillColor color changeSelecting ->
             if changeSelecting then
                 { model | fillColor = color }
+
             else
                 { model | fillColor = { color | selecting = model.fillColor.selecting } }
 
