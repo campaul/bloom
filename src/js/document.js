@@ -98,6 +98,7 @@
         }
     }, { capture: true });
 
+
     document.addEventListener('beforetoggle', (e) => {
         if (ignorePopupOpen && e.newState == "open") {
             ignorePopupOpen = false;
