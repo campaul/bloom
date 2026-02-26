@@ -9,14 +9,25 @@
  * 3) Prevent mouse ctrl + wheel or ctrl + +/- from zooming page so they can
  *    instead zoom the viewport.
  * 4) Close popovers on mousedown instead of mouseup
+ * 5) Prevent re-opening popovers when you click on the trigger for an already
+ *    open popup. This is needed because of #4
  */
 (() => {
     let dragTarget = null;
+    let ignorePopupOpen = false;
 
 
     document.addEventListener('mousedown', (e) => {
         if (e.button !== 0) {
             return;
+        }
+
+        const popoverTarget = document.getElementById(
+            e.target.attributes.popovertarget?.value
+        );
+
+        if (popoverTarget?.matches(':popover-open')) {
+            ignorePopupOpen = true;
         }
 
         document.querySelectorAll('[popover]').forEach(el => {
@@ -84,6 +95,14 @@
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey) {
             e.preventDefault();
+        }
+    }, { capture: true });
+
+    document.addEventListener('beforetoggle', (e) => {
+        if (ignorePopupOpen && e.newState == "open") {
+            ignorePopupOpen = false;
+            e.preventDefault();
+            e.stopPropagation();
         }
     }, { capture: true });
 })();
