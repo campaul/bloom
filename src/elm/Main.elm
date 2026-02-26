@@ -73,8 +73,8 @@ type Msg
     | ZoomIn
     | ZoomOut
     | StrokeWidth String
-    | ChangeStrokeColor Color
-    | ChangeFillColor Color
+    | ChangeStrokeColor Color Bool
+    | ChangeFillColor Color Bool
     | SetTool Tool
     | Select Shape
 
@@ -89,27 +89,27 @@ bottomRight a b =
     { a | x = max a.x b.x, y = max a.y b.y }
 
 
-changeHue : Color -> (Color -> Msg) -> String -> Msg
+changeHue : Color -> (Color -> Bool -> Msg) -> String -> Msg
 changeHue color msg val =
     case String.toInt val of
         Just i ->
-            msg { color | hue = i }
+            msg { color | hue = i } False
 
         Nothing ->
-            msg { color | hue = 0 }
+            msg { color | hue = 0 } False
 
 
-changeOpacity : Color -> (Color -> Msg) -> String -> Msg
+changeOpacity : Color -> (Color -> Bool -> Msg) -> String -> Msg
 changeOpacity color msg val =
     case String.toInt val of
         Just i ->
-            msg { color | alpha = toFloat i / 100 }
+            msg { color | alpha = toFloat i / 100 } False
 
         Nothing ->
-            msg { color | alpha = 1 }
+            msg { color | alpha = 1 } False
 
 
-changeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+changeSatVal : Color -> (Color -> Bool -> Msg) -> Position -> Msg
 changeSatVal color msg pos =
     if pos.button == 0 then
         msg
@@ -117,36 +117,36 @@ changeSatVal color msg pos =
                 | saturation = max 0 (min 1 (pos.x / 255))
                 , value = max 0 (min 1 ((255 - pos.y) / 255))
                 , selecting = True
-            }
+            } True
 
     else
-        msg color
+        msg color False
 
 
-maybeChangeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+maybeChangeSatVal : Color -> (Color -> Bool -> Msg) -> Position -> Msg
 maybeChangeSatVal color msg pos =
     if color.selecting then
         msg
             { color
                 | saturation = max 0 (min 1 (pos.x / 255))
                 , value = max 0 (min 1 ((255 - pos.y) / 255))
-            }
+            } False
 
     else
-        msg color
+        msg color False
 
 
-endChangeSatVal : Color -> (Color -> Msg) -> Position -> Msg
+endChangeSatVal : Color -> (Color -> Bool -> Msg) -> Position -> Msg
 endChangeSatVal color msg pos =
     msg
         { color
             | saturation = max 0 (min 1 (pos.x / 255))
             , value = max 0 (min 1 ((255 - pos.y) / 255))
             , selecting = False
-        }
+        } True
 
 
-colorPicker : String -> Color -> (Color -> Msg) -> Svg Msg
+colorPicker : String -> Color -> (Color -> Bool -> Msg) -> Svg Msg
 colorPicker prefix color msg =
     div
         [ class "color-picker" ]
@@ -448,11 +448,17 @@ update msg model =
                             0
             }
 
-        ChangeStrokeColor color ->
-            { model | strokeColor = color }
+        ChangeStrokeColor color changeSelecting ->
+            if changeSelecting then
+                { model | strokeColor = color }
+            else
+                { model | strokeColor = { color | selecting = model.strokeColor.selecting } }
 
-        ChangeFillColor color ->
-            { model | fillColor = color }
+        ChangeFillColor color changeSelecting ->
+            if changeSelecting then
+                { model | fillColor = color }
+            else
+                { model | fillColor = { color | selecting = model.fillColor.selecting } }
 
         SetTool tool ->
             case tool of
